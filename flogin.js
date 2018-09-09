@@ -95,7 +95,7 @@ function onBeforeRequestEvent(details) {
   const config = yaml.safeLoad(fs.readFileSync('config.yaml', 'utf8'));
 
   const authUrl = config.AuthUrl;
-  const samlUrl = config.SamlUrl;
+  const samlUrl = 'https://signin.aws.amazon.com/saml';
 
   const browser = await puppeteer.launch({
     headless: false,
