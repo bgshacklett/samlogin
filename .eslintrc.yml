@@ -1,0 +1,5 @@
+extends: airbnb-base
+rules:
+  linebreak-style: 0
+  no-multi-spaces: 0
+  indent: 0
