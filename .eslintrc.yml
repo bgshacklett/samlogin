@@ -2,4 +2,22 @@ extends: airbnb-base
 rules:
   linebreak-style: 0
   no-multi-spaces: 0
-  indent: 0
+  indent:
+    - error
+    - 2
+    - FunctionDeclaration:
+        parameters: first
+      MemberExpression: off
+      ObjectExpression: first
+      CallExpression:
+        arguments: first
+  key-spacing:
+    - error
+    - align:
+        beforeColon: false
+        afterColon:  true
+        on:          value
+        mode:        strict
+      multiLine:
+        beforeColon: false
+        afterColon:  true

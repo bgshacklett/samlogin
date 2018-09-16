@@ -3,13 +3,13 @@
 // ************
 const AWS       = require('aws-sdk');
 const fs        = require('fs');
-const jsdom     = require('jsdom');
 const homedir   = require('os').homedir();
 const path      = require('path');
 const puppeteer = require('puppeteer');
 const yaml      = require('js-yaml');
 const { URL }   = require('url');
 const { parse } = require('querystring');
+const LibSaml   = require('libsaml');
 
 
 // ****************
@@ -28,14 +28,24 @@ function outputDocAsDownload(doc) {
 }
 
 
-function extractPrincipalPlusRoleAndAssumeRole(
+function extractPrincipal(roleAttribute) {
+  const rePrincipal = /arn:aws:iam:[^:]*:[0-9]+:saml-provider\/[^,]+/i;
+  const reRole      = /arn:aws:iam:[^:]*:[0-9]+:role\/[^,]+/i;
+  const PrincipalArn = roleAttribute.match(rePrincipal)[0];
+  const RoleArn      = roleAttribute.match(reRole)[0];
+
+  return {
+    PrincipalArn,
+    RoleArn,
+  };
+}
+
+
+function assumeRole(
   samlattribute,
   SAMLAssertion,
 ) {
-  const rePrincipal = /arn:aws:iam:[^:]*:[0-9]+:saml-provider\/[^,]+/i;
-  const reRole      = /arn:aws:iam:[^:]*:[0-9]+:role\/[^,]+/i;
-  const PrincipalArn = samlattribute.match(rePrincipal)[0];
-  const RoleArn      = samlattribute.match(reRole)[0];
+  const { PrincipalArn, RoleArn } = extractPrincipal(samlattribute);
 
   const assumeRoleParams = {
     PrincipalArn,
@@ -58,30 +68,17 @@ function extractPrincipalPlusRoleAndAssumeRole(
 
 
 function onBeforeRequestEvent(details) {
-  const { JSDOM }        = jsdom;
-  const awsSamlNamespace = 'https://aws.amazon.com/SAML';
-  const roleSelector     = `[Name="${awsSamlNamespace}/Attributes/Role"]`;
+  const roleAttributeName  = 'https://aws.amazon.com/SAML/Attributes/Role';
 
   /* eslint no-underscore-dangle: ["error", { "allow": ["_postData"] }] */
   const postData           = parse(details._postData);
-
   const samlResponseBase64 = unescape(postData.SAMLResponse);
-
-  const samlResponse = Buffer.from(samlResponseBase64, 'base64')
-                             .toString();
-
-  const samlDoc = new JSDOM(
-                             samlResponse,
-                             { contentType: 'text/xml' },
-                           )
-                           .window
-                           .document;
-
-  const roleClaims = samlDoc.querySelectorAll(roleSelector);
+  const samlResponse       = new LibSaml(samlResponseBase64);
+  const roleClaims         = samlResponse.getAttribute(roleAttributeName);
 
   roleClaims.forEach((element) => {
-    extractPrincipalPlusRoleAndAssumeRole(
-      element.textContent,
+    assumeRole(
+      element,
       samlResponseBase64,
     );
   });
@@ -98,7 +95,7 @@ function onBeforeRequestEvent(details) {
   const samlUrl = 'https://signin.aws.amazon.com/saml';
 
   const browser = await puppeteer.launch({
-    headless: false,
+    headless:    false,
     userDataDir: path.join(process.env.LOCALAPPDATA, appName, 'Chrome'),
   });
 
@@ -118,3 +115,7 @@ function onBeforeRequestEvent(details) {
 
   await browser.close();
 })();
+
+if (typeof module !== 'undefined' && module.exports != null) {
+  exports.extractPrincipal = extractPrincipal;
+}
