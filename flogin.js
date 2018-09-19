@@ -13,57 +13,54 @@ const LibSaml   = require('libsaml');
 // ****************
 // Global constants
 // ****************
-const appName = 'HelloHeadless';
+const appName = 'flogin';
 
 
 // *********
 // Functions
 // *********
+async function createCredentialBlock(identity) {
+  const { accountNumber, roleName, credentials } = await identity;
+
+  return (`[${accountNumber}-${roleName}]
+           aws_access_key_id = ${credentials.AccessKeyId}
+           aws_secret_access_key = ${credentials.SecretAccessKey}
+           aws_session_token = ${credentials.SessionToken}`);
+}
+
 function outputDocAsDownload(doc) {
-  fs.writeFileSync(path.join(homedir, '.aws', 'credentials'), doc, (err) => {
-    if (err) { throw err; }
-  });
+  const credsPath = path.join(homedir, '.aws', 'credentials');
+  fs.writeFileSync(credsPath, doc);
 }
 
+async function buildDocument(doc, credBlock) {
+  const value = await credBlock;
 
-function extractPrincipal(roleAttribute) {
-  const rePrincipal = /arn:aws:iam:[^:]*:[0-9]+:saml-provider\/[^,]+/i;
-  const reRole      = /arn:aws:iam:[^:]*:[0-9]+:role\/[^,]+/i;
-  const PrincipalArn = roleAttribute.match(rePrincipal)[0];
-  const RoleArn      = roleAttribute.match(reRole)[0];
-
-  return {
-    PrincipalArn,
-    RoleArn,
-  };
+  return value.concat('\n\n', value);
 }
 
+async function assumeRole(roleAttributeValue, SAMLAssertion) {
+  const apiVersion       = '2014-10-01';
+  const rePrincipal      = /arn:aws:iam:[^:]*:[0-9]+:saml-provider\/[^,]+/i;
+  const reRole           = /arn:aws:iam:[^:]*:([0-9]+):role\/([^,]+)/i;
+  const principalMatches = roleAttributeValue.match(rePrincipal);
+  const roleMatches      = roleAttributeValue.match(reRole);
 
-function assumeRole(
-  samlattribute,
-  SAMLAssertion,
-) {
-  const { PrincipalArn, RoleArn } = extractPrincipal(samlattribute);
-
-  const assumeRoleParams = {
-    PrincipalArn,
-    RoleArn,
+  const params = {
+    PrincipalArn: principalMatches[0],
+    RoleArn:      roleMatches[0],
     SAMLAssertion,
   };
 
-  const STS = new AWS.STS();
-  STS.assumeRoleWithSAML(assumeRoleParams, (err, data) => {
-    if (err) throw err;
-    else {
-      const { AccessKeyId, SecretAccessKey, SessionToken } = data.Credentials;
-      outputDocAsDownload(`[default]
-                           aws_access_key_id = ${AccessKeyId}
-                           aws_secret_access_key = ${SecretAccessKey}
-                           aws_session_token = ${SessionToken}`);
-    }
-  });
-}
+  const STS = new AWS.STS({ apiVersion });
+  const response = await STS.assumeRoleWithSAML(params).promise();
 
+  return {
+    accountNumber: roleMatches[1],
+    roleName:      roleMatches[2],
+    credentials:   response.Credentials,
+  };
+}
 
 function onBeforeRequestEvent(details) {
   const roleAttributeName  = 'https://aws.amazon.com/SAML/Attributes/Role';
@@ -73,7 +70,11 @@ function onBeforeRequestEvent(details) {
 
   new LibSaml(samlResponseBase64)
     .getAttribute(roleAttributeName)
-    .forEach(element => assumeRole(element, samlResponseBase64));
+    .map(role => assumeRole(role, samlResponseBase64))
+    .map(identity => createCredentialBlock(identity))
+    .reduce((doc, credBlock) => buildDocument(doc, credBlock), '')
+    .then(doc => outputDocAsDownload(doc))
+    .catch((err) => { throw (err); });
 }
 
 
@@ -105,7 +106,3 @@ function onBeforeRequestEvent(details) {
 
   await page.goto(new URL(authUrl).href);
 })();
-
-if (typeof module !== 'undefined' && module.exports != null) {
-  exports.extractPrincipal = extractPrincipal;
-}
