@@ -34,9 +34,7 @@ function outputDocAsDownload(doc) {
 }
 
 async function buildDocument(doc, credBlock) {
-  const value = await credBlock;
-
-  return value.concat('\n\n', value);
+  return (await doc).concat('\n\n', await credBlock);
 }
 
 async function assumeRole(roleAttributeValue, SAMLAssertion) {
