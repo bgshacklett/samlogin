@@ -1,6 +1,4 @@
 // ************
-// Requirements
-// ************
 const AWS       = require('aws-sdk');
 const fs        = require('fs');
 const homedir   = require('os').homedir();
@@ -71,17 +69,11 @@ function onBeforeRequestEvent(details) {
   const roleAttributeName  = 'https://aws.amazon.com/SAML/Attributes/Role';
 
   /* eslint no-underscore-dangle: ["error", { "allow": ["_postData"] }] */
-  const postData           = parse(details._postData);
-  const samlResponseBase64 = unescape(postData.SAMLResponse);
-  const samlResponse       = new LibSaml(samlResponseBase64);
-  const roleClaims         = samlResponse.getAttribute(roleAttributeName);
+  const samlResponseBase64 = unescape(parse(details._postData).SAMLResponse);
 
-  roleClaims.forEach((element) => {
-    assumeRole(
-      element,
-      samlResponseBase64,
-    );
-  });
+  new LibSaml(samlResponseBase64)
+    .getAttribute(roleAttributeName)
+    .forEach(element => assumeRole(element, samlResponseBase64));
 }
 
 
@@ -104,16 +96,14 @@ function onBeforeRequestEvent(details) {
   await page.setRequestInterception(true);
 
   page.on('request', (interceptedRequest) => {
+    interceptedRequest.continue();
+
     if (interceptedRequest.url() === samlUrl) {
       onBeforeRequestEvent(interceptedRequest);
     }
-
-    interceptedRequest.continue();
   });
 
   await page.goto(new URL(authUrl).href);
-
-  await browser.close();
 })();
 
 if (typeof module !== 'undefined' && module.exports != null) {
