@@ -103,4 +103,6 @@ function onBeforeRequestEvent(details) {
   });
 
   await page.goto(new URL(authUrl).href);
+  await page.waitForRequest(samlUrl);
+  browser.close();
 })();
