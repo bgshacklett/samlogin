@@ -51,8 +51,8 @@ async function assumeRole(roleAttributeValue, SAMLAssertion) {
   };
 
   const STS = new AWS.STS({
-    apiVersion:   '2014-10-01',
-    httpsOptions: { proxy },
+    apiVersion:  '2014-10-01',
+    httpOptions: { proxy },
   });
 
   const response = await STS.assumeRoleWithSAML(params).promise();
