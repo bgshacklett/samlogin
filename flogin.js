@@ -10,10 +10,11 @@ const { parse } = require('querystring');
 const LibSaml   = require('libsaml');
 
 
-// ****************
-// Global constants
-// ****************
+// **************************
+// Global configuration items
+// **************************
 const appName = 'flogin';
+const proxy   = process.env.https_proxy || process.env.HTTPS_PROXY || '';
 
 
 // *********
@@ -38,7 +39,6 @@ async function buildDocument(doc, credBlock) {
 }
 
 async function assumeRole(roleAttributeValue, SAMLAssertion) {
-  const apiVersion       = '2014-10-01';
   const rePrincipal      = /arn:aws:iam:[^:]*:[0-9]+:saml-provider\/[^,]+/i;
   const reRole           = /arn:aws:iam:[^:]*:([0-9]+):role\/([^,]+)/i;
   const principalMatches = roleAttributeValue.match(rePrincipal);
@@ -50,7 +50,11 @@ async function assumeRole(roleAttributeValue, SAMLAssertion) {
     SAMLAssertion,
   };
 
-  const STS = new AWS.STS({ apiVersion });
+  const STS = new AWS.STS({
+    apiVersion:   '2014-10-01',
+    httpsOptions: { proxy },
+  });
+
   const response = await STS.assumeRoleWithSAML(params).promise();
 
   return {
