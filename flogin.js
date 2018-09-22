@@ -14,6 +14,7 @@ const LibSaml   = require('libsaml');
 // Global configuration items
 // **************************
 const appName = 'flogin';
+const config  = yaml.safeLoad(fs.readFileSync('config.yaml', 'utf8'));
 const proxy   = process.env.https_proxy || process.env.HTTPS_PROXY || '';
 
 
@@ -36,6 +37,18 @@ function outputDocAsDownload(doc) {
 
 async function buildDocument(doc, credBlock) {
   return (await doc).concat('\n\n', await credBlock);
+}
+
+async function substituteAccountAlias(credBlock) {
+  if (config.AccountAliases) {
+    return config.AccountAliases
+      .reduce((acc, alias) => {
+        const re = new RegExp(`\\[${alias.AccountNumber}-(.*)\\]`);
+        return acc.replace(re, `[${alias.Alias}-$1]`);
+      }, (await credBlock));
+  }
+
+  return credBlock;
 }
 
 async function assumeRole(roleAttributeValue, SAMLAssertion) {
@@ -74,6 +87,7 @@ function onBeforeRequestEvent(details) {
     .getAttribute(roleAttributeName)
     .map(role => assumeRole(role, samlResponseBase64))
     .map(identity => createCredentialBlock(identity))
+    .map(credBlock => substituteAccountAlias(credBlock))
     .reduce((doc, credBlock) => buildDocument(doc, credBlock), '')
     .then(doc => outputDocAsDownload(doc))
     .catch((err) => { throw (err); });
@@ -84,8 +98,6 @@ function onBeforeRequestEvent(details) {
 // Main Entry Point
 // ****************
 (async () => {
-  const config = yaml.safeLoad(fs.readFileSync('config.yaml', 'utf8'));
-
   const authUrl = config.AuthUrl;
   const samlUrl = 'https://signin.aws.amazon.com/saml';
 
