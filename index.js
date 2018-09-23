@@ -5,6 +5,7 @@ const AWS       = require('aws-sdk');
 const fs        = require('fs');
 const homedir   = require('os').homedir();
 const path      = require('path');
+const prompts   = require('prompts');
 const puppeteer = require('puppeteer');
 const yaml      = require('js-yaml');
 const { URL }   = require('url');
@@ -96,6 +97,26 @@ function onBeforeRequestEvent(details) {
     .catch((err) => { throw (err); });
 }
 
+async function executeLoginStep(step, page) {
+  // Fill each required field.
+  await Promise.all(step.Fields.map(async (field) => {
+    const selector = field.Selector;
+    await page.waitForSelector(selector);
+    const inputElement = await page.$(selector);
+
+    const userInput = await prompts({
+      type:    field.Type,
+      name:    'input',
+      message: field.Name,
+    });
+    return inputElement.type(userInput.input);
+  }));
+
+  // Submit the form and handle any errors.
+  const submitElement = await page.$(step.Submit);
+  await submitElement.click();
+}
+
 
 // ****************
 // Main Entry Point
@@ -119,6 +140,15 @@ function onBeforeRequestEvent(details) {
     if (interceptedRequest.url() === samlUrl) {
       onBeforeRequestEvent(interceptedRequest);
     }
+  });
+
+  page.on('framenavigated', async () => {
+    // match page URL and perform login steps
+    const url = await page.url();
+
+    config.LoginSteps
+      .filter(x => Array.isArray(url.match(x.UrlPattern)))
+      .forEach(async x => executeLoginStep(x, page));
   });
 
   await page.goto(new URL(authUrl).href, { timeout: 0 });
