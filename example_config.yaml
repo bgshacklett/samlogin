@@ -1,0 +1,13 @@
+---
+# Example Configuration File
+
+AuthUrl:  # The login URL of your IDP - E.g.:
+          # https://accounts.google.com/o/saml2/init.sso?...
+
+# Use "Prod" in place of 123456789012 and Dev in place of 210987654321in the
+# profile name.
+AccountAliases:
+  - AccountNumber: '123456789012'
+    Alias: Prod
+  - AccountNumber: '210987654321'
+    Alias: Dev

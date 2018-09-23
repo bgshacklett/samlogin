@@ -14,10 +14,11 @@ intercept SAML logins to AWS and store the credentials in a credentials file.
 
 ## Configuration
 Configuration is managed with a yaml file named config.yaml in the project
-directory. There is currently only one key required: `AuthUrl`.
+directory. An example configuration may be found at example_config.yaml.
 
 ### Configuration Keys
 * `AuthUrl` - The URL of your Identity Provider which accepts your credentials
+* `AccountAliases` - A sequence of maps from account number to alias
 
 ## Usage
 `node /path/to/flogin/flogin.js`
