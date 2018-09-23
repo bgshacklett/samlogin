@@ -103,9 +103,10 @@ function onBeforeRequestEvent(details) {
 (async () => {
   const authUrl = config.AuthUrl;
   const samlUrl = 'https://signin.aws.amazon.com/saml';
+  const debug   = process.argv.reduce((x, y) => x || (y === '--debug'), false);
 
   const browser = await puppeteer.launch({
-    headless:    false,
+    headless:    !debug,
     userDataDir: path.join(process.env.LOCALAPPDATA, appName, 'Chrome'),
   });
 
