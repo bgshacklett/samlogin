@@ -106,7 +106,15 @@ function onBeforeRequestEvent(details) {
 
   const browser = await puppeteer.launch({
     headless:    false,
-    userDataDir: path.join(process.env.LOCALAPPDATA, appName, 'Chrome'),
+    userDataDir: path.join(
+      (
+        process.env.LOCALAPPDATA
+        || process.env.XDG_DATA_HOME
+        || '~/'
+      ),
+      appName,
+      'Chrome',
+    ),
   });
 
   const page = await browser.newPage();
