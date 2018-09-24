@@ -101,8 +101,9 @@ function onBeforeRequestEvent(details) {
 // Main Entry Point
 // ****************
 (async () => {
-  const authUrl = config.AuthUrl;
-  const samlUrl = 'https://signin.aws.amazon.com/saml';
+  const authUrl        = config.AuthUrl;
+  const samlUrl        = 'https://signin.aws.amazon.com/saml';
+  const appSupportPath = path.join('~/', 'Library', 'Application Support');
 
   const browser = await puppeteer.launch({
     headless:    false,
@@ -110,6 +111,7 @@ function onBeforeRequestEvent(details) {
       (
         process.env.LOCALAPPDATA
         || process.env.XDG_DATA_HOME
+        || (fs.existsSync(appSupportPath) ? appSupportPath : null)
         || '~/'
       ),
       appName,
