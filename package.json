@@ -1,4 +1,9 @@
 {
+  "name": "flogin",
+  "version": "1.0.0",
+  "bin": {
+    "flogin": "index.js"
+  },
   "dependencies": {
     "aws-sdk": "^2.307.0",
     "common-tags": "^1.8.0",
