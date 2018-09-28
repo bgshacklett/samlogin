@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 // ************
 const AWS       = require('aws-sdk');
 const fs        = require('fs');
@@ -13,9 +15,10 @@ const LibSaml   = require('libsaml');
 // **************************
 // Global configuration items
 // **************************
-const appName = 'flogin';
-const config  = yaml.safeLoad(fs.readFileSync('config.yaml', 'utf8'));
-const proxy   = process.env.https_proxy || process.env.HTTPS_PROXY || '';
+const appName    = 'flogin';
+const configPath = path.join(__dirname, 'config.yaml');
+const config     = yaml.safeLoad(fs.readFileSync(configPath, 'utf8'));
+const proxy      = process.env.https_proxy || process.env.HTTPS_PROXY || '';
 
 
 // *********
