@@ -117,6 +117,11 @@ async function executeLoginStep(step, page) {
   await submitElement.click();
 }
 
+function validateStepForPage(step, elements, url) {
+  return Array.isArray(url.match(step.UrlPattern))
+         && elements.reduce((x, y) => Boolean(x && y), true);
+}
+
 
 // ****************
 // Main Entry Point
@@ -145,10 +150,17 @@ async function executeLoginStep(step, page) {
   page.on('framenavigated', async () => {
     // match page URL and perform login steps
     const url = await page.url();
+    page.waitFor(1000);
 
-    config.LoginSteps
-      .filter(x => Array.isArray(url.match(x.UrlPattern)))
-      .forEach(async x => executeLoginStep(x, page));
+    config.LoginSteps.forEach(async (step) => {
+      const elements = await Promise.all(
+        step.Fields.map(x => page.$(x.Selector)),
+      );
+
+      if (validateStepForPage(step, elements, url)) {
+        executeLoginStep(step, page);
+      }
+    });
   });
 
   await page.goto(new URL(authUrl).href, { timeout: 0 });
