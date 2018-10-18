@@ -7,7 +7,6 @@
   "dependencies": {
     "aws-sdk": "^2.307.0",
     "common-tags": "^1.8.0",
-    "gulp": "^4.0.0",
     "gulp-eslint": "^5.0.0",
     "js-yaml": "^3.12.0",
     "jsdom": "^12.0.0",
@@ -16,10 +15,19 @@
     "unexpected": "^10.39.0"
   },
   "devDependencies": {
+    "@commitlint/cli": "^7.1.2",
+    "@commitlint/config-conventional": "^7.1.2",
     "eslint": "^5.5.0",
     "eslint-config-airbnb-base": "^13.1.0",
     "eslint-plugin-import": "^2.14.0",
+    "gulp": "^4.0.0",
+    "husky": "^1.0.1",
     "mocha": "^5.2.0"
+  },
+  "husky": {
+    "hooks": {
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
   },
   "scripts": {
     "test": "mocha"
