@@ -21,7 +21,11 @@
     "eslint-config-airbnb-base": "^13.1.0",
     "eslint-plugin-import": "^2.14.0",
     "gulp": "^4.0.0",
+    "gulp-bump": "^3.1.1",
+    "gulp-conventional-changelog": "^2.0.3",
+    "gulplog": "^1.0.0",
     "husky": "^1.0.1",
+    "minimist": "^1.2.0",
     "mocha": "^5.2.0"
   },
   "husky": {

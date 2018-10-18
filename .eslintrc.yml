@@ -10,7 +10,8 @@ rules:
       MemberExpression: off
       ObjectExpression: first
       CallExpression:
-        arguments: first
+        arguments: off
+      ArrayExpression: off
   key-spacing:
     - error
     - align:
