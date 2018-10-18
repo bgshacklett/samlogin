@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 
 // ************
-const AWS       = require('aws-sdk');
-const fs        = require('fs');
-const homedir   = require('os').homedir();
-const path      = require('path');
-const puppeteer = require('puppeteer');
-const yaml      = require('js-yaml');
-const { URL }   = require('url');
-const { parse } = require('querystring');
-const LibSaml   = require('libsaml');
+const AWS             = require('aws-sdk');
+const fs              = require('fs');
+const homedir         = require('os').homedir();
+const path            = require('path');
+const puppeteer       = require('puppeteer');
+const yaml            = require('js-yaml');
+const { URL }         = require('url');
+const { parse }       = require('querystring');
+const LibSaml         = require('libsaml');
+const { stripIndents } = require('common-tags');
 
 
 // **************************
@@ -27,7 +28,7 @@ const proxy      = process.env.https_proxy || process.env.HTTPS_PROXY || '';
 async function createCredentialBlock(identity) {
   const { accountNumber, roleName, credentials } = await identity;
 
-  return (`[${accountNumber}-${roleName}]
+  return (stripIndents`[${accountNumber}-${roleName}]
            aws_access_key_id = ${credentials.AccessKeyId}
            aws_secret_access_key = ${credentials.SecretAccessKey}
            aws_session_token = ${credentials.SessionToken}`);
