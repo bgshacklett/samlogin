@@ -102,6 +102,13 @@ function onBeforeRequestEvent(details, config) {
 
 
 async function locateConfig(appName, argv) {
+  const localAppData = process.env.LocalAppData
+                       || path.join(
+                                     process.env.HOME,
+                                     'AppData',
+                                     'Local',
+                                   );
+
   const xdgConfigHome = process.env.XDG_CONFIG_HOME
                         || path.join(
                                       process.env.HOME,
@@ -116,7 +123,7 @@ async function locateConfig(appName, argv) {
                                    );
 
   return argv.config || locatePath([
-    path.join(process.env.LOCALAPPDATA, appName, 'config.yaml'),
+    path.join(localAppData, appName, 'config.yaml'),
     path.join(xdgConfigHome, appName, 'config.yaml'),
     path.join(preferencesPath, appName, 'config.yaml'),
     path.join(process.env.HOME, `.${appName}.yaml`),
