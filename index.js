@@ -112,8 +112,7 @@ async function locateConfig(appName, argv) {
   const xdgConfigHome = process.env.XDG_CONFIG_HOME
                         || path.join(
                                       process.env.HOME,
-                                      '.local',
-                                      'share',
+                                      '.config',
                                     );
 
   const preferencesPath = path.join(
