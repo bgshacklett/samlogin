@@ -1,8 +1,8 @@
 {
-  "name": "flogin",
-  "version": "1.0.0",
+  "name": "samlogin",
+  "version": "1.0.1",
   "bin": {
-    "flogin": "index.js"
+    "samlogin": "index.js"
   },
   "dependencies": {
     "aws-sdk": "^2.307.0",

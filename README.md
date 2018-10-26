@@ -1,8 +1,8 @@
-# flogin (short for federated login)
+# samlogin
 This tool uses Puppeteer (https://github.com/GoogleChrome/puppeteer) to
 intercept SAML logins to AWS and store the credentials in a credentials file.
 
-`flogin` was inspired heavily by the SAML to STS Keys extension
+`samlogin` was inspired heavily by the SAML to STS Keys extension
 (https://github.com/prolane/samltoawsstskeys) by G.T.C. (Gerard) Laan.
 
 ## Installation
@@ -13,13 +13,13 @@ intercept SAML logins to AWS and store the credentials in a credentials file.
 5. Create your configuration file in the project directory.
 
 ## Configuration
-Configuration is managed with a yaml file. flogin will attempt to find the
+Configuration is managed with a yaml file. samlogin will attempt to find the
 configuration file in the following paths (in order):
   1. An exact path specified by the `--config` parameter
-  2. `%LOCALAPPDATA\flogin\config.yaml`
-  3. `$XDG_CONFIG_HOME/flogin/config.yaml`
-  4. `$HOME/Library/Preferences/flogin/config.yaml`
-  5. `~/.flogin.yaml`
+  2. `%LOCALAPPDATA\samlogin\config.yaml`
+  3. `$XDG_CONFIG_HOME/samlogin/config.yaml`
+  4. `$HOME/Library/Preferences/samlogin/config.yaml`
+  5. `~/.samlogin.yaml`
 
 ### Configuration Keys
 * `AuthUrl` - The URL of your Identity Provider which accepts your credentials
@@ -43,7 +43,7 @@ AccountAliases:
 ```
 
 ## Usage
-`flogin [--config <path>]`
+`samlogin [--config <path>]`
 
 Calling the command will launch an embedded instance of Chromium and navigate
 to `AuthUrl`. Once you log in, your IDP will forward the browser to the AWS
