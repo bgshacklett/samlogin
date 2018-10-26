@@ -1,25 +1,24 @@
 #!/usr/bin/env node
 
 // ************
-const AWS             = require('aws-sdk');
-const fs              = require('fs');
-const homedir         = require('os').homedir();
-const path            = require('path');
-const puppeteer       = require('puppeteer');
-const yaml            = require('js-yaml');
-const { URL }         = require('url');
-const { parse }       = require('querystring');
-const LibSaml         = require('libsaml');
+const AWS              = require('aws-sdk');
+const fs               = require('fs');
+const homedir          = require('os').homedir();
+const path             = require('path');
+const puppeteer        = require('puppeteer');
+const yaml             = require('js-yaml');
+const { URL }          = require('url');
+const { parse }        = require('querystring');
+const LibSaml          = require('libsaml');
+const locatePath       = require('locate-path');
+const parseArgs        = require('minimist');
 const { stripIndents } = require('common-tags');
+const winston          = require('winston');
 
 
 // **************************
 // Global configuration items
 // **************************
-const appName    = 'flogin';
-const configPath = path.join(__dirname, 'config.yaml');
-const config     = yaml.safeLoad(fs.readFileSync(configPath, 'utf8'));
-const proxy      = process.env.https_proxy || process.env.HTTPS_PROXY || '';
 
 
 // *********
@@ -43,7 +42,7 @@ async function buildDocument(doc, credBlock) {
   return (await doc).concat('\n\n', await credBlock);
 }
 
-async function substituteAccountAlias(credBlock) {
+async function substituteAccountAlias(credBlock, config) {
   if (config.AccountAliases) {
     return config.AccountAliases
       .reduce((acc, alias) => {
@@ -69,7 +68,11 @@ async function assumeRole(roleAttributeValue, SAMLAssertion) {
 
   const STS = new AWS.STS({
     apiVersion:  '2014-10-01',
-    httpOptions: { proxy },
+    httpOptions: {
+                   proxy: process.env.https_proxy
+                          || process.env.HTTPS_PROXY
+                          || '',
+                 },
   });
 
   const response = await STS.assumeRoleWithSAML(params).promise();
@@ -81,7 +84,7 @@ async function assumeRole(roleAttributeValue, SAMLAssertion) {
   };
 }
 
-function onBeforeRequestEvent(details) {
+function onBeforeRequestEvent(details, config) {
   const roleAttributeName  = 'https://aws.amazon.com/SAML/Attributes/Role';
 
   /* eslint no-underscore-dangle: ["error", { "allow": ["_postData"] }] */
@@ -91,33 +94,110 @@ function onBeforeRequestEvent(details) {
     .getAttribute(roleAttributeName)
     .map(role => assumeRole(role, samlResponseBase64))
     .map(identity => createCredentialBlock(identity))
-    .map(credBlock => substituteAccountAlias(credBlock))
+    .map(credBlock => substituteAccountAlias(credBlock, config))
     .reduce((doc, credBlock) => buildDocument(doc, credBlock), '')
     .then(doc => outputDocAsDownload(doc))
     .catch((err) => { throw (err); });
 }
 
 
+async function locateConfig(appName, argv) {
+  const localAppData = process.env.LocalAppData
+                       || path.join(
+                                     process.env.HOME,
+                                     'AppData',
+                                     'Local',
+                                   );
+
+  const xdgConfigHome = process.env.XDG_CONFIG_HOME
+                        || path.join(
+                                      process.env.HOME,
+                                      '.config',
+                                    );
+
+  const preferencesPath = path.join(
+                                     process.env.HOME,
+                                     'Library',
+                                     'Application Support',
+                                   );
+
+  return argv.config || locatePath([
+    path.join(localAppData, appName, 'config.yaml'),
+    path.join(xdgConfigHome, appName, 'config.yaml'),
+    path.join(preferencesPath, appName, 'config.yaml'),
+    path.join(process.env.HOME, `.${appName}.yaml`),
+  ]);
+}
+
+
+async function locateDataPath(appName) {
+  const xdgDataHome = process.env.XDG_DATA_HOME
+                      || path.join(
+                                    process.env.HOME,
+                                    '.local',
+                                    'share',
+                                  );
+
+  const appSupportPath = path.join(
+                                    process.env.HOME,
+                                    'Library',
+                                    'Application Support',
+                                  );
+
+  const dataHome = await locatePath([
+                                     process.env.LOCALAPPDATA,
+                                     xdgDataHome,
+                                     appSupportPath,
+                                     process.env.HOME,
+                                   ]);
+
+  return path.join(
+                    dataHome,
+                    (dataHome === process.env.HOME
+                      ? `.${appName}`
+                      : appName),
+                  );
+}
+
 // ****************
 // Main Entry Point
 // ****************
 (async () => {
-  const authUrl        = config.AuthUrl;
-  const samlUrl        = 'https://signin.aws.amazon.com/saml';
-  const appSupportPath = path.join('~/', 'Library', 'Application Support');
+  const appName = 'flogin';
+  const argv    = parseArgs(
+                             process.argv.slice(2),
+                             {
+                               config: 'string',
+                             },
+                           );
+
+  const logger = winston.createLogger({
+    level:       'info',
+    format:      winston.format.simple(),
+    exitOnError: true,
+    transports:  [
+                   new winston.transports.Console(),
+                 ],
+  });
+
+  const fmtConfigNotFound = 'No configuration file could be found.';
+
+  const configPath = await locateConfig(appName, argv)
+                     || (logger.error(fmtConfigNotFound) && process.exit());
+
+  const config = yaml.safeLoad(fs.readFileSync(
+    configPath,
+    'utf8',
+  ));
+  const authUrl = config.AuthUrl;
+  const samlUrl = config.samlUrl || 'https://signin.aws.amazon.com/saml';
 
   const browser = await puppeteer.launch({
     headless:    false,
     userDataDir: path.join(
-      (
-        process.env.LOCALAPPDATA
-        || process.env.XDG_DATA_HOME
-        || (fs.existsSync(appSupportPath) ? appSupportPath : null)
-        || '~/'
-      ),
-      appName,
-      'Chrome',
-    ),
+                            await locateDataPath(appName),
+                            'Chrome',
+                          ),
   });
 
   const page = await browser.newPage();
@@ -128,7 +208,7 @@ function onBeforeRequestEvent(details) {
     interceptedRequest.continue();
 
     if (interceptedRequest.url() === samlUrl) {
-      onBeforeRequestEvent(interceptedRequest);
+      onBeforeRequestEvent(interceptedRequest, config);
     }
   });
 

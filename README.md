@@ -13,20 +13,39 @@ intercept SAML logins to AWS and store the credentials in a credentials file.
 5. Create your configuration file in the project directory.
 
 ## Configuration
-Configuration is managed with a yaml file named config.yaml in the project
-directory. An example configuration may be found at example_config.yaml.
+Configuration is managed with a yaml file. flogin will attempt to find the
+configuration file in the following paths (in order):
+  1. An exact path specified by the `--config` parameter
+  2. `%LOCALAPPDATA\flogin\config.yaml`
+  3. `$XDG_CONFIG_HOME/flogin/config.yaml`
+  4. `$HOME/Library/Preferences/flogin/config.yaml`
+  5. `~/.flogin.yaml`
 
 ### Configuration Keys
 * `AuthUrl` - The URL of your Identity Provider which accepts your credentials
 * `AccountAliases` - A sequence of maps from account number to alias
 
+An example configuration:
+```
+---
+# Example Configuration File
+
+AuthUrl:  # The login URL of your IDP - E.g.:
+          # https://accounts.google.com/o/saml2/init.sso?...
+
+# Use "Prod" in place of 123456789012 and Dev in place of 210987654321in the
+# profile name.
+AccountAliases:
+  - AccountNumber: '123456789012'
+    Alias: Prod
+  - AccountNumber: '210987654321'
+    Alias: Dev
+```
+
 ## Usage
-`node /path/to/flogin/flogin.js`
+`flogin [--config <path>]`
 
 Calling the command will launch an embedded instance of Chromium and navigate
 to `AuthUrl`. Once you log in, your IDP will forward the browser to the AWS
 SAML endpoint and the credentials will be intercepted and written to
 `~/.aws/credentials`.
-
-Until the tool is packaged in a more convenient form, it may be useful to use
-reverse-i-search (`^R`) to execute subsequent invocations.
