@@ -163,7 +163,7 @@ async function locateDataPath(appName) {
 // Main Entry Point
 // ****************
 (async () => {
-  const appName = 'flogin';
+  const appName = 'samlogin';
   const argv    = parseArgs(
                              process.argv.slice(2),
                              {
