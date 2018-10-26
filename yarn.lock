@@ -1142,9 +1142,9 @@ levn@^0.3.0, levn@~0.3.0:
     prelude-ls "~1.1.2"
     type-check "~0.3.2"
 
-"libsaml@https://github.com/bgshacklett/libsaml.git":
+libsaml@1.0.0:
   version "1.0.0"
-  resolved "https://github.com/bgshacklett/libsaml.git#363a83c027febad37bb92e53e653973292b223be"
+  resolved "https://registry.yarnpkg.com/libsaml/-/libsaml-1.0.0.tgz#52b8640f66d85c54ba26e0a6d23fff7c7b10aa13"
   dependencies:
     lodash "^4.17.5"
     xmldom "^0.1.16"
