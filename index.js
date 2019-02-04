@@ -131,6 +131,13 @@ async function locateConfig(appName, argv) {
 
 
 async function locateDataPath(appName) {
+  const localAppData = process.env.LocalAppData
+                       || path.join(
+                                     process.env.HOME,
+                                     'AppData',
+                                     'Local',
+                                   );
+
   const xdgDataHome = process.env.XDG_DATA_HOME
                       || path.join(
                                     process.env.HOME,
@@ -145,7 +152,7 @@ async function locateDataPath(appName) {
                                   );
 
   const dataHome = await locatePath([
-                                     process.env.LOCALAPPDATA,
+                                     localAppData,
                                      xdgDataHome,
                                      appSupportPath,
                                      process.env.HOME,
