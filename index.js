@@ -2,6 +2,7 @@
 
 // ************
 const AWS              = require('aws-sdk');
+const chalk            = require('chalk');
 const fs               = require('fs');
 const homedir          = require('os').homedir();
 const path             = require('path');
@@ -77,11 +78,15 @@ async function assumeRole(roleAttributeValue, SAMLAssertion) {
 
   const response = await STS.assumeRoleWithSAML(params).promise();
 
-  return {
+  let role = {
     accountNumber: roleMatches[1],
     roleName:      roleMatches[2],
     credentials:   response.Credentials,
   };
+
+  console.log(chalk.green(`Assumed role: ${role.roleName}`))
+
+  return role
 }
 
 function onBeforeRequestEvent(details, config) {
