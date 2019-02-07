@@ -1,3 +1,10 @@
+<a name="1.1.0"></a>
+# 1.1.0 (2019-02-04)
+
+
+Output assumed roles to the console.
+
+
 <a name="1.0.2"></a>
 # 1.0.2 (2019-02-04)
 
