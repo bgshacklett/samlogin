@@ -1,3 +1,17 @@
+<a name="1.2.0"></a>
+# 1.2.0 (2019-02-12)
+
+
+## Features:
+Improve status output.
+
+## Development/Build:
+* Enable automated builds via Travis-CI.
+* Add lint report for each build.
+* Add testing for STS AssumeRole activities.
+
+
+
 <a name="1.1.0"></a>
 # 1.1.0 (2019-02-04)
 
