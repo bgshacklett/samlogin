@@ -2,7 +2,6 @@
 
 // ************
 const AWS              = require('aws-sdk');
-const chalk            = require('chalk');
 const fs               = require('fs');
 const homedir          = require('os').homedir();
 const path             = require('path');
@@ -16,10 +15,7 @@ const parseArgs        = require('minimist');
 const { stripIndents } = require('common-tags');
 const winston          = require('winston');
 
-
-// **************************
-// Global configuration items
-// **************************
+const sts              = require('./sts.js');
 
 
 // *********
@@ -55,25 +51,11 @@ async function substituteAccountAlias(credBlock, config) {
   return credBlock;
 }
 
-async function assumeRole(config, roleAttributeValue, SAMLAssertion) {
-  const rePrincipal      = /arn:aws:iam:[^:]*:[0-9]+:saml-provider\/[^,]+/i;
-  const reRole           = /arn:aws:iam:[^:]*:([0-9]+):role\/([^,]+)/i;
-  const principalMatches = roleAttributeValue.match(rePrincipal);
-  const roleMatches      = roleAttributeValue.match(reRole);
-  const accountNumber    = roleMatches[1];
-  const roleName         = roleMatches[2];
+function onBeforeRequestEvent(details, config, logger) {
+  const roleAttributeName  = 'https://aws.amazon.com/SAML/Attributes/Role';
 
-  const params = {
-    PrincipalArn: principalMatches[0],
-    RoleArn:      roleMatches[0],
-    SAMLAssertion,
-  };
-
-  const roleAccount = config.AccountAliases
-                            .Filter(
-                              x => x.AccountNumber
-                                   === accountNumber,
-                            )[0] || accountNumber;
+  /* eslint no-underscore-dangle: ["error", { "allow": ["_postData"] }] */
+  const samlResponseBase64 = unescape(parse(details._postData).SAMLResponse);
 
   const STS = new AWS.STS({
     apiVersion:  '2014-10-01',
@@ -84,33 +66,9 @@ async function assumeRole(config, roleAttributeValue, SAMLAssertion) {
                  },
   });
 
-  try
-  {
-  console.log(FMT_ASSUME_ROLE_BEGIN.format(roleName, roleAccount));
-  const response = await STS.assumeRoleWithSAML(params).promise();
-  console.log(FMT_ASSUME_ROLE_SUCCESS.format(roleName, roleAccount));
-
-  return {
-           accountNumber,
-           roleName,
-           credentials: response.Credentials,
-         };
-  }
-  catch (e)
-  {
-    throw e;
-  }
-}
-
-function onBeforeRequestEvent(details, config) {
-  const roleAttributeName  = 'https://aws.amazon.com/SAML/Attributes/Role';
-
-  /* eslint no-underscore-dangle: ["error", { "allow": ["_postData"] }] */
-  const samlResponseBase64 = unescape(parse(details._postData).SAMLResponse);
-
   new LibSaml(samlResponseBase64)
     .getAttribute(roleAttributeName)
-    .map(role => assumeRole(config, role, samlResponseBase64))
+    .map(role => sts.assumeRole(config, logger, STS, role, samlResponseBase64))
     .map(identity => createCredentialBlock(identity))
     .map(credBlock => substituteAccountAlias(credBlock, config))
     .reduce((doc, credBlock) => buildDocument(doc, credBlock), '')
@@ -233,7 +191,7 @@ async function locateDataPath(appName) {
     interceptedRequest.continue();
 
     if (interceptedRequest.url() === samlUrl) {
-      onBeforeRequestEvent(interceptedRequest, config);
+      onBeforeRequestEvent(interceptedRequest, config, logger);
     }
   });
 

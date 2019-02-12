@@ -13,6 +13,7 @@
     "libsaml": "1.0.0",
     "locate-path": "^3.0.0",
     "minimist": "^1.2.0",
+    "printj": "^1.2.1",
     "puppeteer": "1.6.2",
     "unexpected": "^10.39.0",
     "winston": "^3.1.0"
@@ -29,6 +30,7 @@
     "mocha": "^5.2.0"
   },
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "test-debug": "mocha --inspect-brk"
   }
 }
