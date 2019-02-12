@@ -55,7 +55,7 @@ async function substituteAccountAlias(credBlock, config) {
   return credBlock;
 }
 
-async function assumeRole(roleAttributeValue, SAMLAssertion) {
+async function assumeRole(logger, roleAttributeValue, SAMLAssertion) {
   const rePrincipal      = /arn:aws:iam:[^:]*:[0-9]+:saml-provider\/[^,]+/i;
   const reRole           = /arn:aws:iam:[^:]*:([0-9]+):role\/([^,]+)/i;
   const principalMatches = roleAttributeValue.match(rePrincipal);
@@ -78,18 +78,18 @@ async function assumeRole(roleAttributeValue, SAMLAssertion) {
 
   const response = await STS.assumeRoleWithSAML(params).promise();
 
-  let role = {
+  const role = {
     accountNumber: roleMatches[1],
     roleName:      roleMatches[2],
     credentials:   response.Credentials,
   };
 
-  console.log(chalk.green(`Assumed role: ${role.roleName}`))
+  logger.info(chalk.green(`Assumed role: ${role.roleName}`));
 
-  return role
+  return role;
 }
 
-function onBeforeRequestEvent(details, config) {
+function onBeforeRequestEvent(details, config, logger) {
   const roleAttributeName  = 'https://aws.amazon.com/SAML/Attributes/Role';
 
   /* eslint no-underscore-dangle: ["error", { "allow": ["_postData"] }] */
@@ -97,7 +97,7 @@ function onBeforeRequestEvent(details, config) {
 
   new LibSaml(samlResponseBase64)
     .getAttribute(roleAttributeName)
-    .map(role => assumeRole(role, samlResponseBase64))
+    .map(role => assumeRole(logger, role, samlResponseBase64))
     .map(identity => createCredentialBlock(identity))
     .map(credBlock => substituteAccountAlias(credBlock, config))
     .reduce((doc, credBlock) => buildDocument(doc, credBlock), '')
@@ -220,7 +220,7 @@ async function locateDataPath(appName) {
     interceptedRequest.continue();
 
     if (interceptedRequest.url() === samlUrl) {
-      onBeforeRequestEvent(interceptedRequest, config);
+      onBeforeRequestEvent(interceptedRequest, config, logger);
     }
   });
 
