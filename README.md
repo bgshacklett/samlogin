@@ -1,4 +1,5 @@
 # samlogin
+[![Build Status](https://travis-ci.org/bgshacklett/samlogin.svg?branch=master)](https://travis-ci.org/bgshacklett/samlogin)  
 This tool uses Puppeteer (https://github.com/GoogleChrome/puppeteer) to
 intercept SAML logins to AWS and store the credentials in a credentials file.
 
