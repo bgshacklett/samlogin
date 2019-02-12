@@ -3,13 +3,7 @@
 const expect     = require('unexpected');
 const sts        = require('../sts.js');
 
-/* eslint-disable no-console */
-const MOCK_LOGGER = {
-                      info: (message) => {
-                              console.log(`Function output: ${message}`);
-                            },
-                    };
-
+const MOCK_ACCOUNT_ALIAS        = 'Lab'
 const MOCK_ROLE_ATTRIBUTE_VALUE = 'arn:aws:iam::012345678910:role/MockRole,arn:aws:iam::012345678910:saml-provider/providername';
 const MOCK_SAML_ASSERTION       = '';
 const MOCK_CREDENTIALS          = {
@@ -35,9 +29,18 @@ describe(
                             AccountAliases: [
                               {
                                 AccountNumber: '012345678910',
-                                Alias:         'Lab',
+                                Alias:         MOCK_ACCOUNT_ALIAS,
                               },
                             ],
+                          };
+
+      const log = [];
+
+      /* eslint-disable no-console */
+      const MOCK_LOGGER = {
+                            info: (message) => {
+                                    log.push(message);
+                                  },
                           };
 
       it('Returns an Assumed Role Object', async () => {
@@ -49,15 +52,16 @@ describe(
           MOCK_SAML_ASSERTION,
         );
 
-        expect(
-          actual,
-          'to equal',
-          {
-            accountNumber: '012345678910',
-            roleName:      'MockRole',
-            credentials:   MOCK_CREDENTIALS,
-          },
-        );
+        expect(actual, 'to equal', {
+                                     accountNumber: '012345678910',
+                                     roleName:      'MockRole',
+                                     credentials:   MOCK_CREDENTIALS,
+                                   });
+      });
+
+      it('Logs the correct account name', async () => {
+        expect(log[0], 'to contain', MOCK_ACCOUNT_ALIAS);
+        expect(log[1], 'to contain', MOCK_ACCOUNT_ALIAS);
       });
     });
   },
