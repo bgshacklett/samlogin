@@ -13,3 +13,4 @@ rules:
       multiLine:
         beforeColon: false
         afterColon:  true
+  brace-style: 0

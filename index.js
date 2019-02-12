@@ -2,7 +2,6 @@
 
 // ************
 const AWS              = require('aws-sdk');
-const chalk            = require('chalk');
 const fs               = require('fs');
 const homedir          = require('os').homedir();
 const path             = require('path');
@@ -16,10 +15,7 @@ const parseArgs        = require('minimist');
 const { stripIndents } = require('common-tags');
 const winston          = require('winston');
 
-
-// **************************
-// Global configuration items
-// **************************
+const sts              = require('./sts.js');
 
 
 // *********
@@ -55,17 +51,11 @@ async function substituteAccountAlias(credBlock, config) {
   return credBlock;
 }
 
-async function assumeRole(logger, roleAttributeValue, SAMLAssertion) {
-  const rePrincipal      = /arn:aws:iam:[^:]*:[0-9]+:saml-provider\/[^,]+/i;
-  const reRole           = /arn:aws:iam:[^:]*:([0-9]+):role\/([^,]+)/i;
-  const principalMatches = roleAttributeValue.match(rePrincipal);
-  const roleMatches      = roleAttributeValue.match(reRole);
+function onBeforeRequestEvent(details, config, logger) {
+  const roleAttributeName  = 'https://aws.amazon.com/SAML/Attributes/Role';
 
-  const params = {
-    PrincipalArn: principalMatches[0],
-    RoleArn:      roleMatches[0],
-    SAMLAssertion,
-  };
+  /* eslint no-underscore-dangle: ["error", { "allow": ["_postData"] }] */
+  const samlResponseBase64 = unescape(parse(details._postData).SAMLResponse);
 
   const STS = new AWS.STS({
     apiVersion:  '2014-10-01',
@@ -76,28 +66,9 @@ async function assumeRole(logger, roleAttributeValue, SAMLAssertion) {
                  },
   });
 
-  const response = await STS.assumeRoleWithSAML(params).promise();
-
-  const role = {
-    accountNumber: roleMatches[1],
-    roleName:      roleMatches[2],
-    credentials:   response.Credentials,
-  };
-
-  logger.info(chalk.green(`Assumed role: ${role.roleName}`));
-
-  return role;
-}
-
-function onBeforeRequestEvent(details, config, logger) {
-  const roleAttributeName  = 'https://aws.amazon.com/SAML/Attributes/Role';
-
-  /* eslint no-underscore-dangle: ["error", { "allow": ["_postData"] }] */
-  const samlResponseBase64 = unescape(parse(details._postData).SAMLResponse);
-
   new LibSaml(samlResponseBase64)
     .getAttribute(roleAttributeName)
-    .map(role => assumeRole(logger, role, samlResponseBase64))
+    .map(role => sts.assumeRole(config, logger, STS, role, samlResponseBase64))
     .map(identity => createCredentialBlock(identity))
     .map(credBlock => substituteAccountAlias(credBlock, config))
     .reduce((doc, credBlock) => buildDocument(doc, credBlock), '')
