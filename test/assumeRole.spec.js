@@ -3,7 +3,7 @@
 const expect     = require('unexpected');
 const sts        = require('../sts.js');
 
-const MOCK_ACCOUNT_ALIAS        = 'Lab'
+const MOCK_ACCOUNT_ALIAS        = 'Lab';
 const MOCK_ROLE_ATTRIBUTE_VALUE = 'arn:aws:iam::012345678910:role/MockRole,arn:aws:iam::012345678910:saml-provider/providername';
 const MOCK_SAML_ASSERTION       = '';
 const MOCK_CREDENTIALS          = {
