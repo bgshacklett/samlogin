@@ -17,14 +17,17 @@ module.exports = {
                      SAMLAssertion,
                    };
 
-    // Get the alias of the account if it exists. Otherwise, use the #.
+    // Get the alias of the account if it exists.
+    // Otherwise, use the account number.
+    // TODO: It may make sense to extract this into a function.
     const roleAccount = (
                           config.AccountAliases
                           && config.AccountAliases
                                    .filter(
                                      x => x.AccountNumber
                                      === accountNumber,
-                                   )[0].Alias
+                                   )
+                                   .reduce((acc, alias) => alias.Alias, null)
                         )
                         || accountNumber;
 
