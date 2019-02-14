@@ -1,3 +1,11 @@
+<a name="1.2.1"></a>
+# 1.2.1 (2019-02-14)
+
+
+## Bug Fixes
+Fix #21: Crash when assuming roles across multiple accounts
+
+
 <a name="1.2.0"></a>
 # 1.2.0 (2019-02-12)
 
