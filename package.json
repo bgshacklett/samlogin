@@ -1,6 +1,10 @@
 {
   "name": "samlogin",
-  "version": "1.2.1",
+  "version": "1.3.0",
+  "description": "This tool uses Puppeteer (https://github.com/GoogleChrome/puppeteer) to intercept SAML logins to AWS and store the credentials in a credentials file.",
+  "repository": "https://github.com/bgshacklett/samlogin.git",
+  "author": "Brian G. Shacklett",
+  "license": "MIT",
   "bin": {
     "samlogin": "index.js"
   },

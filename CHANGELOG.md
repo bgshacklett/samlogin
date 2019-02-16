@@ -1,3 +1,16 @@
+<a name="1.3.0"></a>
+# 1.3.0 (2019-02-15)
+
+
+## Improvements
+* Ignore roles for which assumption fails.
+* Log to console on failure instead of re-throwing the error.
+* Enable stack trace output with `--debug` flag.
+
+## Development/Build
+* Move mock objects to separate module
+
+
 <a name="1.2.1"></a>
 # 1.2.1 (2019-02-14)
 
