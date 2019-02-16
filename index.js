@@ -69,6 +69,7 @@ function onBeforeRequestEvent(details, config, logger) {
   new LibSaml(samlResponseBase64)
     .getAttribute(roleAttributeName)
     .map(role => sts.assumeRole(config, logger, STS, role, samlResponseBase64))
+    .filter(x => x != null) // filter roles which could not be assumed.
     .map(identity => createCredentialBlock(identity))
     .map(credBlock => substituteAccountAlias(credBlock, config))
     .reduce((doc, credBlock) => buildDocument(doc, credBlock), '')
@@ -151,11 +152,12 @@ async function locateDataPath(appName) {
                              process.argv.slice(2),
                              {
                                config: 'string',
+                               debug:  'boolean',
                              },
                            );
 
   const logger = winston.createLogger({
-    level:       'info',
+    level:       argv.debug ? 'debug' : 'info',
     format:      winston.format.simple(),
     exitOnError: true,
     transports:  [

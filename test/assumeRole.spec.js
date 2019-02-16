@@ -1,222 +1,249 @@
 /* global describe it */
 /* eslint-env mocha */
-const expect     = require('unexpected');
-const sts        = require('../sts.js');
-
-const MOCK_SAML_ASSERTION = '';
-const MOCK_CREDENTIALS    = {
-                              accessKeyId:  '',
-                              secretKey:    '',
-                              SessionToken: '',
-                            };
-
-const MOCK_ACCOUNT_NUMBER = {
-                              lab:  '012345678910',
-                              sbx:  '123456789101',
-                              dev:  '234567891012',
-                              prod: '345678910123',
-                            };
-
-const MOCK_STS = {
-  /* eslint-disable no-unused-vars */
-  assumeRoleWithSAML: params => ({
-                                  promise: async () => ({
-                                    Credentials: MOCK_CREDENTIALS,
-                                  }),
-                                }),
-};
+const expect = require('unexpected');
+const Sts    = require('../sts.js');
+const mock   = require('./mock.js');
 
 describe(
-  '#assumeRole(config, logger, STS, roleAttributeValue, SAMLAssertion)',
+  '#assumeRole(config, logger, sts, roleAttributeValue, SAMLAssertion)',
   () => {
-    describe('With a Single Alias Configured...', () => {
-      describe('When the role matches the alias...', () => {
-        const MOCK_ROLE_ATTRIBUTE_VALUE = `arn:aws:iam::${MOCK_ACCOUNT_NUMBER.lab}:role/MockRole,arn:aws:iam::${MOCK_ACCOUNT_NUMBER.lab}:saml-provider/providername`;
-        const MOCK_CONFIG = {
+    describe('On failure of assumeRole...', () => {
+      describe('When the log level is set to info...', () => {
+        const mockConfig = {
                               AccountAliases: [
                                 {
-                                  AccountNumber: MOCK_ACCOUNT_NUMBER.lab,
+                                  AccountNumber: mock.accountNumber.lab,
                                   Alias:         'Lab',
                                 },
                               ],
                             };
 
-        const log = [];
+        const log = new mock.Log();
 
-        /* eslint-disable no-console */
-        const MOCK_LOGGER = {
-                              info: (message) => {
-                                      log.push(message);
-                                    },
-                            };
-
-        it('Returns an Assumed Role Object', async () => {
-          const actual = await sts.assumeRole(
-            MOCK_CONFIG,
-            MOCK_LOGGER,
-            MOCK_STS,
-            MOCK_ROLE_ATTRIBUTE_VALUE,
-            MOCK_SAML_ASSERTION,
+        it('Returns "null"', async () => {
+          const actual = await Sts.assumeRole(
+            mockConfig,
+            new mock.Logger(log, 'info'),
+            new mock.Sts(false),
+            mock.roleAttributeValue.lab,
+            mock.saml_assertion,
           );
 
-          expect(actual, 'to equal', {
-                                       accountNumber: MOCK_ACCOUNT_NUMBER.lab,
-                                       roleName:      'MockRole',
-                                       credentials:   MOCK_CREDENTIALS,
-                                     });
+          expect(actual, 'to be', null);
         });
 
         it('Logs the correct account name', async () => {
-          expect(log[0], 'to be ok');
-          expect(log[0], 'to contain', 'Lab');
-          expect(log[1], 'to contain', 'Lab');
+          expect(log.entries('info'), 'to have length', 1);
+          expect(log.entries('info')[0].message, 'to contain', 'Lab');
+        });
+        it('Logs the error', async () => {
+          expect(log.entries('error'), 'to have length', 1);
+          expect(log.entries('error')[0].message, 'to be', 'Fail!');
         });
       });
 
-      describe('When the role does not match the alias...', () => {
-        const MOCK_ROLE_ATTRIBUTE_VALUE = `arn:aws:iam::${MOCK_ACCOUNT_NUMBER.sbx}:role/MockRole,arn:aws:iam::${MOCK_ACCOUNT_NUMBER.sbx}:saml-provider/providername`;
-        const MOCK_CONFIG = {
-                              AccountAliases: [
-                                {
-                                  AccountNumber: MOCK_ACCOUNT_NUMBER.lab,
-                                  Alias:         'Lab',
-                                },
-                              ],
-                            };
 
-        const log = [];
+      describe('When the log level is set to debug...', () => {
+        const mockConfig = {
+                             AccountAliases: [
+                               {
+                                 AccountNumber: mock.accountNumber.lab,
+                                 Alias:         'Lab',
+                               },
+                             ],
+                           };
 
-        /* eslint-disable no-console */
-        const MOCK_LOGGER = {
-                              info: (message) => {
-                                      log.push(message);
-                                    },
-                            };
+        const log = new mock.Log();
 
-        it('Returns an Assumed Role Object', async () => {
-          const actual = await sts.assumeRole(
-            MOCK_CONFIG,
-            MOCK_LOGGER,
-            MOCK_STS,
-            MOCK_ROLE_ATTRIBUTE_VALUE,
-            MOCK_SAML_ASSERTION,
+        it('Returns "null"', async () => {
+          const actual = await Sts.assumeRole(
+            mockConfig,
+            new mock.Logger(log, 'debug'),
+            new mock.Sts(false),
+            mock.roleAttributeValue.lab,
+            mock.saml_assertion,
           );
 
-          expect(actual, 'to equal', {
-                                       accountNumber: MOCK_ACCOUNT_NUMBER.sbx,
-                                       roleName:      'MockRole',
-                                       credentials:   MOCK_CREDENTIALS,
-                                     });
+          expect(actual, 'to be', null);
         });
 
         it('Logs the correct account name', async () => {
-          expect(log[0], 'to be ok');
-          expect(log[0], 'to contain', MOCK_ACCOUNT_NUMBER.sbx);
-          expect(log[1], 'to contain', MOCK_ACCOUNT_NUMBER.sbx);
+          expect(log.entries('info'), 'to have length', 1);
+          expect(log.entries('info')[0].message, 'to contain', 'Lab');
+        });
+
+        it('Logs the error', async () => {
+          expect(log.entries('error'), 'to have length', 1);
+          expect(log.entries('error')[0].message, 'to be', 'Fail!');
+        });
+
+        it('Logs the full stack trace', async () => {
+          expect(log.entries('debug'), 'to have length', 1);
+          expect(log.entries('debug')[0].message, 'to contain', 'Fail!');
         });
       });
     });
 
-    describe('With Multiple Aliases Configured...', () => {
-      describe('When the role matches an alias...', () => {
-        const MOCK_ROLE_ATTRIBUTE_VALUE = `arn:aws:iam::${MOCK_ACCOUNT_NUMBER.lab}:role/MockRole,arn:aws:iam::${MOCK_ACCOUNT_NUMBER.lab}:saml-provider/providername`;
-        const MOCK_CONFIG = {
+
+    describe('With a Single Alias Configured...', () => {
+      describe('When the role matches the alias...', () => {
+        const mockConfig = {
                               AccountAliases: [
                                 {
-                                  AccountNumber: MOCK_ACCOUNT_NUMBER.lab,
+                                  AccountNumber: mock.accountNumber.lab,
                                   Alias:         'Lab',
-                                },
-                                {
-                                  AccountNumber: MOCK_ACCOUNT_NUMBER.sbx,
-                                  Alias:         'Sandbox',
-                                },
-                                {
-                                  AccountNumber: MOCK_ACCOUNT_NUMBER.dev,
-                                  Alias:         'Dev',
                                 },
                               ],
                             };
 
-        const log = [];
-
-        /* eslint-disable no-console */
-        const MOCK_LOGGER = {
-                              info: (message) => {
-                                      log.push(message);
-                                    },
-                            };
+        const log = new mock.Log();
 
         it('Returns an Assumed Role Object', async () => {
-          const actual = await sts.assumeRole(
-            MOCK_CONFIG,
-            MOCK_LOGGER,
-            MOCK_STS,
-            MOCK_ROLE_ATTRIBUTE_VALUE,
-            MOCK_SAML_ASSERTION,
+          const actual = await Sts.assumeRole(
+            mockConfig,
+            new mock.Logger(log, 'info'),
+            new mock.Sts(true),
+            mock.roleAttributeValue.lab,
+            mock.saml_assertion,
           );
 
           expect(actual, 'to equal', {
-                                       accountNumber: MOCK_ACCOUNT_NUMBER.lab,
+                                       accountNumber: mock.accountNumber.lab,
                                        roleName:      'MockRole',
-                                       credentials:   MOCK_CREDENTIALS,
+                                       credentials:   mock.credentials,
                                      });
         });
 
         it('Logs the correct account name', async () => {
-          expect(log[0], 'to be ok');
-          expect(log[0], 'to contain', 'Lab');
-          expect(log[1], 'to contain', 'Lab');
+          expect(log.entries('info'), 'to have length', 2);
+          expect(log.entries('info')[0].message, 'to contain', 'Lab');
+          expect(log.entries('info')[1].message, 'to contain', 'Lab');
         });
       });
 
-      describe('When the role does not match any aliases...', () => {
-        const MOCK_ROLE_ATTRIBUTE_VALUE = `arn:aws:iam::${MOCK_ACCOUNT_NUMBER.prod}:role/MockRole,arn:aws:iam::${MOCK_ACCOUNT_NUMBER.prod}:saml-provider/providername`;
-        const MOCK_CONFIG = {
+
+      describe('When the role does not match the alias...', () => {
+        const mockConfig = {
                               AccountAliases: [
                                 {
-                                  AccountNumber: MOCK_ACCOUNT_NUMBER.lab,
+                                  AccountNumber: mock.accountNumber.lab,
+                                  Alias:         'Lab',
+                                },
+                              ],
+                            };
+
+        const log = new mock.Log();
+
+        it('Returns an Assumed Role Object', async () => {
+          const actual = await Sts.assumeRole(
+            mockConfig,
+            new mock.Logger(log, 'info'),
+            new mock.Sts(true),
+            mock.roleAttributeValue.sbx,
+            mock.saml_assertion,
+          );
+
+          expect(actual, 'to equal', {
+                                       accountNumber: mock.accountNumber.sbx,
+                                       roleName:      'MockRole',
+                                       credentials:   mock.credentials,
+                                     });
+        });
+
+        it('Logs the correct account name', async () => {
+          expect(log.entries('info'), 'to have length', 2);
+          expect(log.entries('info')[0].message, 'to contain', mock.accountNumber.sbx);
+          expect(log.entries('info')[0].message, 'to contain', mock.accountNumber.sbx);
+        });
+      });
+    });
+
+
+    describe('With Multiple Aliases Configured...', () => {
+      describe('When the role matches an alias...', () => {
+        const mockConfig = {
+                              AccountAliases: [
+                                {
+                                  AccountNumber: mock.accountNumber.lab,
                                   Alias:         'Lab',
                                 },
                                 {
-                                  AccountNumber: MOCK_ACCOUNT_NUMBER.sbx,
+                                  AccountNumber: mock.accountNumber.sbx,
                                   Alias:         'Sandbox',
                                 },
                                 {
-                                  AccountNumber: MOCK_ACCOUNT_NUMBER.dev,
+                                  AccountNumber: mock.accountNumber.dev,
                                   Alias:         'Dev',
                                 },
                               ],
                             };
 
-        const log = [];
-
-        /* eslint-disable no-console */
-        const MOCK_LOGGER = {
-                              info: (message) => {
-                                      log.push(message);
-                                    },
-                            };
+        const log = new mock.Log();
 
         it('Returns an Assumed Role Object', async () => {
-          const actual = await sts.assumeRole(
-            MOCK_CONFIG,
-            MOCK_LOGGER,
-            MOCK_STS,
-            MOCK_ROLE_ATTRIBUTE_VALUE,
-            MOCK_SAML_ASSERTION,
+          const actual = await Sts.assumeRole(
+            mockConfig,
+            new mock.Logger(log, 'info'),
+            new mock.Sts(true),
+            mock.roleAttributeValue.lab,
+            mock.saml_assertion,
           );
 
           expect(actual, 'to equal', {
-                                       accountNumber: MOCK_ACCOUNT_NUMBER.prod,
+                                       accountNumber: mock.accountNumber.lab,
                                        roleName:      'MockRole',
-                                       credentials:   MOCK_CREDENTIALS,
+                                       credentials:   mock.credentials,
                                      });
         });
 
         it('Logs the correct account name', async () => {
-          expect(log[0], 'to be ok');
-          expect(log[0], 'to contain', MOCK_ACCOUNT_NUMBER.prod);
-          expect(log[1], 'to contain', MOCK_ACCOUNT_NUMBER.prod);
+          expect(log.entries('info'), 'to have length', 2);
+          expect(log.entries('info')[0].message, 'to contain', 'Lab');
+          expect(log.entries('info')[1].message, 'to contain', 'Lab');
+        });
+      });
+
+
+      describe('When the role does not match any aliases...', () => {
+        const mockConfig = {
+                              AccountAliases: [
+                                {
+                                  AccountNumber: mock.accountNumber.lab,
+                                  Alias:         'Lab',
+                                },
+                                {
+                                  AccountNumber: mock.accountNumber.sbx,
+                                  Alias:         'Sandbox',
+                                },
+                                {
+                                  AccountNumber: mock.accountNumber.dev,
+                                  Alias:         'Dev',
+                                },
+                              ],
+                            };
+
+        const log = new mock.Log();
+
+        it('Returns an Assumed Role Object', async () => {
+          const actual = await Sts.assumeRole(
+            mockConfig,
+            new mock.Logger(log, 'info'),
+            new mock.Sts(true),
+            mock.roleAttributeValue.prod,
+            mock.saml_assertion,
+          );
+
+          expect(actual, 'to equal', {
+                                       accountNumber: mock.accountNumber.prod,
+                                       roleName:      'MockRole',
+                                       credentials:   mock.credentials,
+                                     });
+        });
+
+        it('Logs the correct account name', async () => {
+          expect(log.entries('info'), 'to have length', 2);
+          expect(log.entries('info')[0].message, 'to contain', mock.accountNumber.prod);
+          expect(log.entries('info')[1].message, 'to contain', mock.accountNumber.prod);
         });
       });
     });
