@@ -45,7 +45,9 @@ module.exports = {
     }
     catch (e)
     {
-      throw e;
+      logger.error(e.message);
+      logger.debug(e.stack);
+      return null;
     }
   },
 };
