@@ -1,79 +1,59 @@
 #!/usr/bin/env node
 
 // ************
-const AWS              = require('aws-sdk');
-const fs               = require('fs');
-const homedir          = require('os').homedir();
-const path             = require('path');
-const puppeteer        = require('puppeteer');
-const yaml             = require('js-yaml');
-const { URL }          = require('url');
-const { parse }        = require('querystring');
-const LibSaml          = require('libsaml');
-const locatePath       = require('locate-path');
-const parseArgs        = require('minimist');
-const { stripIndents } = require('common-tags');
-const winston          = require('winston');
+const AWS        = require('aws-sdk');
+const fs         = require('fs');
+const path       = require('path');
+const puppeteer  = require('puppeteer');
+const yaml       = require('js-yaml');
+const { URL }    = require('url');
+const { parse }  = require('querystring');
+const LibSaml    = require('libsaml');
+const locatePath = require('locate-path');
+const parseArgs  = require('minimist');
+const winston    = require('winston');
 
-const sts              = require('./sts.js');
+const libsts     = require('./sts.js');
+const docBuilder = require('./docBuilder.js');
+const docWriter  = require('./docWriter.js');
 
 
 // *********
 // Functions
 // *********
-async function createCredentialBlock(identity) {
-  const { accountNumber, roleName, credentials } = await identity;
-
-  return (stripIndents`[${accountNumber}-${roleName}]
-           aws_access_key_id = ${credentials.AccessKeyId}
-           aws_secret_access_key = ${credentials.SecretAccessKey}
-           aws_session_token = ${credentials.SessionToken}`);
-}
-
-function outputDocAsDownload(doc) {
-  const credsPath = path.join(homedir, '.aws', 'credentials');
-  fs.writeFileSync(credsPath, doc);
-}
-
-async function buildDocument(doc, credBlock) {
-  return (await doc).concat('\n\n', await credBlock);
-}
-
-async function substituteAccountAlias(credBlock, config) {
-  if (config.AccountAliases) {
-    return config.AccountAliases
-      .reduce((acc, alias) => {
-        const re = new RegExp(`\\[${alias.AccountNumber}-(.*)\\]`);
-        return acc.replace(re, `[${alias.Alias}-$1]`);
-      }, (await credBlock));
-  }
-
-  return credBlock;
-}
-
-function onBeforeRequestEvent(details, config, logger) {
+function onBeforeRequestEvent(
+                               qs,      // Parses the query string
+                               request, // A request containing a SAML response
+                               config,  // Contains config details
+                               logger,  // Handles logging
+                               client,  // The AWS SDK client
+                               SamlLib, // Parses SAML Response(s)
+                               stslib,  // Responsible for assuming roles
+                               builder, // Builds the creds doc
+                               writer,  // Writes the creds doc
+                             ) {
   const roleAttributeName  = 'https://aws.amazon.com/SAML/Attributes/Role';
 
   /* eslint no-underscore-dangle: ["error", { "allow": ["_postData"] }] */
-  const samlResponseBase64 = unescape(parse(details._postData).SAMLResponse);
+  const samlResponse = unescape(qs(request._postData).SAMLResponse);
 
-  const STS = new AWS.STS({
-    apiVersion:  '2014-10-01',
-    httpOptions: {
-                   proxy: process.env.https_proxy
-                          || process.env.HTTPS_PROXY
-                          || '',
-                 },
-  });
+  const STS = new client.STS({
+                               apiVersion:  '2014-10-01',
+                               httpOptions: {
+                                              proxy: process.env.https_proxy
+                                                     || process.env.HTTPS_PROXY
+                                                     || '',
+                                            },
+                             });
 
-  new LibSaml(samlResponseBase64)
+  new SamlLib(samlResponse)
     .getAttribute(roleAttributeName)
-    .map(role => sts.assumeRole(config, logger, STS, role, samlResponseBase64))
+    .map(role => stslib.assumeRole(config, logger, STS, role, samlResponse))
     .filter(x => x != null) // filter roles which could not be assumed.
-    .map(identity => createCredentialBlock(identity))
-    .map(credBlock => substituteAccountAlias(credBlock, config))
-    .reduce((doc, credBlock) => buildDocument(doc, credBlock), '')
-    .then(doc => outputDocAsDownload(doc))
+    .map(identity => builder.createCredentialBlock(identity))
+    .map(credBlock => builder.substituteAccountAlias(credBlock, config))
+    .reduce((doc, credBlock) => builder.buildDocument(doc, credBlock), '')
+    .then(doc => writer.outputDocAsDownload(doc))
     .catch((err) => { throw (err); });
 }
 
@@ -146,7 +126,7 @@ async function locateDataPath(appName) {
 // ****************
 // Main Entry Point
 // ****************
-(async () => {
+async function Main() {
   const appName = 'samlogin';
   const argv    = parseArgs(
                              process.argv.slice(2),
@@ -193,11 +173,31 @@ async function locateDataPath(appName) {
     interceptedRequest.continue();
 
     if (interceptedRequest.url() === samlUrl) {
-      onBeforeRequestEvent(interceptedRequest, config, logger);
+      onBeforeRequestEvent(
+                            parse,
+                            interceptedRequest,
+                            config,
+                            logger,
+                            AWS,
+                            LibSaml,
+                            libsts,
+                            docBuilder,
+                            docWriter,
+                          );
     }
   });
 
   await page.goto(new URL(authUrl).href, { timeout: 0 });
   await page.waitForRequest(samlUrl, { timeout: 0 });
   browser.close();
-})();
+}
+
+
+// Allow loading functions as a Node.js module for testing purposes
+if (require.main === module) {
+  (async () => Main())();
+}
+
+module.exports = {
+                   onBeforeRequestEvent,
+                 };

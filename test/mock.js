@@ -94,12 +94,50 @@ const Sts = function mocksts(success) {
 };
 
 
+function LibSaml() {
+  return {
+           getAttribute: function getAttribute() { return [{}]; },
+         };
+}
+
+function qs() { return { SAMLResponse: '' }; }
+
+const AWS = {
+              STS: function STS() {},
+            };
+
+const libSts = {
+                 assumeRole: async () => ({}),
+               };
+
+const libStsNull = {
+                     assumeRole: async () => ({}),
+                   };
+
+const docBuilder = {
+                     buildDocument:          async () => '',
+                     createCredentialBlock:  async () => '',
+                     substituteAccountAlias: async () => '',
+                   };
+
+const docWriter = {
+                    outputDocAsDownload: async x => x,
+                  };
+
+
 module.exports = {
-  accountNumber,
-  samlAssertion,
-  credentials,
-  Log,
-  Logger,
-  roleAttributeValue,
-  Sts,
-};
+                   qs,
+                   AWS,
+                   libSts,        // Returns an object
+                   libStsNull,    // Always returns null
+                   docBuilder,
+                   docWriter,
+                   accountNumber,
+                   samlAssertion,
+                   credentials,
+                   Log,
+                   Logger,
+                   LibSaml,
+                   roleAttributeValue,
+                   Sts,
+                 };
