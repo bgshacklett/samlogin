@@ -20,7 +20,8 @@
     "printj": "^1.2.1",
     "puppeteer": "1.6.2",
     "unexpected": "^10.39.0",
-    "winston": "^3.1.0"
+    "winston": "^3.1.0",
+    "snyk": "^1.189.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^7.5.0",
@@ -36,6 +37,9 @@
   },
   "scripts": {
     "test": "mocha",
-    "test-debug": "mocha --inspect-brk"
-  }
+    "test-debug": "mocha --inspect-brk",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
+  },
+  "snyk": true
 }
