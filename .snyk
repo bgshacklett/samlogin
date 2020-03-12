@@ -6,3 +6,10 @@ patch:
   SNYK-JS-HTTPSPROXYAGENT-469131:
     - puppeteer > https-proxy-agent:
         patched: '2019-10-04T07:36:51.002Z'
+  SNYK-JS-LODASH-450202:
+    - libsaml > lodash:
+        patched: '2019-07-04T07:40:07.532Z'
+    - winston > async > lodash:
+        patched: '2019-07-04T07:40:07.532Z'
+    - jsdom > request-promise-native > request-promise-core > lodash:
+        patched: '2019-07-04T07:40:07.532Z'
