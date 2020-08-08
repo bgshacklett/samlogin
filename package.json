@@ -18,7 +18,7 @@
     "locate-path": "^3.0.0",
     "minimist": "^1.2.2",
     "printj": "^1.2.1",
-    "puppeteer": "1.6.2",
+    "puppeteer": "1.13.0",
     "unexpected": "^10.39.0",
     "winston": "^3.1.0",
     "snyk": "^1.316.1"
