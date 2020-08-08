@@ -10,7 +10,7 @@ intercept SAML logins to AWS and store the credentials in a credentials file.
 1. Install Node.js (tested on v8.11.4).
 2. Clone the project repository to your preferred location.
 3. Navigate to the project directory.
-4. Install the package dependencies with `yarn install` or `npm install`.
+4. Install the package dependencies with `npm install`.
 5. Create your configuration file in the project directory.
 
 ## Configuration
